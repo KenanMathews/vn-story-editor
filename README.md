@@ -1,4 +1,4 @@
-# VN Story Editor
+# Story Editor
 
 A powerful, web-based visual novel script editor designed for creating interactive stories that integrate with [VN Engine](https://github.com/KenanMathews/vn-engine) and [VN Compiler](https://github.com/KenanMathews/vn-compiler-fresh).
 

@@ -156,11 +156,6 @@ function validateObjectVariable(name, value, reporter) {
  * Validate array variable
  */
 function validateArrayVariable(name, value, reporter) {
-  if (value.length === 0) {
-    reporter.addInfo(1, 1, 'VARIABLE_EMPTY_ARRAY', 
-      `Variable "${name}" is an empty array`)
-  }
-
   // Check for mixed types in array
   const types = [...new Set(value.map(item => typeof item))]
   if (types.length > 1) {
@@ -223,12 +218,6 @@ function checkVariableNamingConventions(name, reporter) {
   if (name.length === 1) {
     reporter.addWarning(1, 1, 'VARIABLE_SINGLE_LETTER', 
       `Variable "${name}" is a single letter. Consider more descriptive names.`)
-  }
-
-  // Check for numbers in variable names
-  if (/\d/.test(name)) {
-    reporter.addInfo(1, 1, 'VARIABLE_WITH_NUMBERS', 
-      `Variable "${name}" contains numbers. Ensure this is intentional.`)
   }
 }
 

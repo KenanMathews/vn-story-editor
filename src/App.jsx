@@ -1,201 +1,235 @@
-import { useState, useRef, useEffect } from 'react'
-import MonacoEditor from './components/MonacoEditor'
-import Header from './components/Header'
-import ValidationPanel from './components/ValidationPanel'
-import { 
-  validateStoryFormat, 
-  formatValidationForDisplay,
-  getValidationSummary 
-} from './utils/storyValidator'
+// App.jsx - Updated with enhanced Commands Panel Integration
+import React, { useState, useEffect } from 'react'
+import { useFileSystem } from './hooks/useFileSystem'
+import FileTree from './components/ui/FileTree'
+import EditorFactory from './components/editors/EditorFactory'
+import ValidationPanel from './components/panels/ValidationPanel'
+import CommandPanel from './components/panels/CommandPanel'
+import Header from './components/ui/Header'
+import { validateStoryFormat } from './utils/storyValidator'
+import Tour, { useTour } from './components/tour/Tour'
+import './index.css'
 
 function App() {
-  const [editorContent, setEditorContent] = useState('')
-  const [isMinimapVisible, setIsMinimapVisible] = useState(true)
-  const [status, setStatus] = useState('Ready')
-  const [wordCount, setWordCount] = useState(0)
+  const {
+    projects,
+    currentProject,
+    files,
+    loading,
+    createProject,
+    loadProject,
+    createFile,
+    createFolder,
+    updateFile,
+    deleteFile,
+    renameFile,
+    moveFile,
+  } = useFileSystem()
+
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [openFiles, setOpenFiles] = useState([])
+  const [activeFileKey, setActiveFileKey] = useState(null)
+  const [showMinimap, setShowMinimap] = useState(true)
   const [validationResult, setValidationResult] = useState(null)
-  const [showValidationDetails, setShowValidationDetails] = useState(false)
-  const editorRef = useRef(null)
+  const [showValidationPanel, setShowValidationPanel] = useState(false)
+  const [showCommandPanel, setShowCommandPanel] = useState(false)
+  const { showTour, startTour, closeTour } = useTour() 
 
-  // Load the provided story file on mount
+  // Load first project by default
   useEffect(() => {
-    const initialContent = `title: "The Temporal Tavern Chronicles - Enhanced"
-description: "Hub-based interactive story system with enhanced mechanics"
-styles:
-  theme: "ocean_blue"
-  layout: "cinematic"
-
-variables:
-  # Core Progress
-  storiesCompleted: 0
-  totalStories: 3
-  reputationLevel: "Unknown Keeper"
-  artifactsCollected: 0
-  totalArtifacts: 12
-  
-  # Character Development
-  keeper_name: ""
-  keeper_experience: 0
-  empathy_level: 1
-  wisdom_level: 1
-  intuition_level: 1
-
-scenes:
-  tavern_intro:
-    - |
-      {{setVar "current_time_period" "neutral"}}
-      {{setVar "session_start_time" currentTime}}
-      {{setVar "tommy_story_stage" 1}}
-      {{playAudio 'tavern_ambience' gameAssets true true}}
-      {{showImage 'tavern_neutral' gameAssets 'vn-background'}}
-      The Temporal Tavern sits at the crossroads of history itself.
-    - "You are the Keeper. The one who listens. The one who remembers."
-    - "{{input 'keeper_name' 'What name do the spirits know you by?' 'text'}}"
-    - text: "What calls to you?"
-      choices:
-        - text: "Begin your training as Keeper"
-          goto: keeper_tutorial
-        - text: "Open the Chronicle"
-          goto: chapter_selection
-
-  keeper_tutorial:
-    - "Every spirit that enters these doors carries a truth too heavy for the world to bear."
-    - "Your role is sacred: **Listen** without judgment. **Remember** what others forget."
-    - text: "Are you ready to accept this responsibility?"
-      choices:
-        - text: "I swear to preserve these truths"
-          goto: tutorial_oath
-        - text: "What exactly will I be doing?"
-          goto: tutorial_details
-
-  tutorial_oath:
-    - |
-      {{incrementVar 'wisdom_level' 1}}
-      {{incrementVar 'keeper_experience' 5}}
-      {{addFlag 'tutorial_complete'}}
-      The Chronicle glows brighter as you speak your oath.
-    - "[🏆 ACHIEVEMENT UNLOCKED: Sacred Oath - Begin your journey as Keeper]"
-    - goto: chapter_selection
-
-  chapter_selection:
-    - "The Chronicle's pages flutter open. Choose your path:"
-    - text: "Which voice from history calls to you?"
-      choices:
-        - text: "Chapter I: The Christmas Truce - 1914"
-          goto: prepare_1914
-        - text: "Chapter II: The Plague Doctor - 1854"
-          goto: prepare_1854
-        - text: "View Progress & Achievements"
-          goto: keeper_progress`;
-
-    setEditorContent(initialContent)
-    updateWordCount(initialContent)
-  }, [])
-
-  const handleEditorChange = (value) => {
-    setEditorContent(value)
-    updateWordCount(value)
-    setStatus('Modified')
-  }
-
-  const updateWordCount = (content) => {
-    const words = content.trim().split(/\s+/).length
-    setWordCount(words)
-  }
-
-  const handleFormat = () => {
-    if (editorRef.current) {
-      editorRef.current.getAction('editor.action.formatDocument').run()
-      setStatus('Formatted')
+    console.log('All env vars:', import.meta.env)
+    if (projects.length > 0 && !currentProject) {
+      loadProject(projects[0].id)
     }
+  }, [projects, currentProject, loadProject])
+
+  const handleFileSelect = (file) => {
+    // Get file content from our file system
+    const fileContent = getFileByPath(files, file.key)
+    
+    if (fileContent) {
+      const editorFile = {
+        ...file,
+        content: fileContent.content,
+        fileType: fileContent.type
+      }
+      
+      setSelectedFile(editorFile)
+      setActiveFileKey(file.key)
+      
+      // Add to open files if not already open
+      if (!openFiles.find(f => f.key === file.key)) {
+        setOpenFiles(prev => [...prev, editorFile])
+      }
+      
+      // Clear validation for non-YAML files
+      if (editorFile.fileType !== 'yaml') {
+        setValidationResult(null)
+        setShowValidationPanel(false)
+      }
+    }
+  }
+
+  const getFileByPath = (fileObj, path) => {
+    const parts = path.split('/')
+    let current = fileObj
+    
+    for (const part of parts) {
+      if (current[part]) {
+        current = current[part]
+      } else {
+        return null
+      }
+    }
+    
+    return current
+  }
+
+  const handleFileChange = (content) => {
+    if (selectedFile) {
+      const updatedFile = { ...selectedFile, content }
+      setSelectedFile(updatedFile)
+      
+      // Update in open files
+      setOpenFiles(prev => 
+        prev.map(f => f.key === activeFileKey ? updatedFile : f)
+      )
+      
+      // Auto-save to IndexedDB
+      updateFile(`${currentProject.id}/${activeFileKey}`, content)
+    }
+  }
+
+  const handleFileCreate = async (path, name, type, content) => {
+    await createFile(path, name, type, content)
+  }
+
+  const handleFolderCreate = async (path, name) => {
+    await createFolder(path, name)
+  }
+
+  const handleFileDelete = async (relativePath) => {
+    // Close the file if it's currently open
+    if (selectedFile?.key === relativePath) {
+      setSelectedFile(null)
+      setActiveFileKey(null)
+    }
+    
+    // Remove from open files
+    setOpenFiles(prev => prev.filter(f => f.key !== relativePath))
+    
+    // Delete from file system - convert relative path to full path
+    await deleteFile(`${currentProject.id}/${relativePath}`)
+  }
+
+  const handleFileRename = async (relativePath, newName) => {
+    // Convert relative path to full path for rename
+    await renameFile(`${currentProject.id}/${relativePath}`, newName)
   }
 
   const handleValidate = () => {
-    const result = validateStoryFormat(editorContent)
-    setValidationResult(result)
-    
-    const summary = getValidationSummary(result)
-    
-    if (summary.isValid) {
-      setStatus('✅ Valid')
-    } else {
-      setStatus(`❌ ${summary.errors} error(s), ${summary.warnings} warning(s)`)
-    }
-    
-    setShowValidationDetails(true)
-  }
-
-  const handleSave = () => {
-    const blob = new Blob([editorContent], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'story-chronicle.txt'
-    a.click()
-    URL.revokeObjectURL(url)
-    setStatus('Saved')
-  }
-
-  const handleLoadFile = (event) => {
-    const file = event.target.files[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const content = e.target.result
-        setEditorContent(content)
-        updateWordCount(content)
-        setStatus('File loaded')
-      }
-      reader.readAsText(file)
+    if (selectedFile && selectedFile.fileType === 'yaml') {
+      const result = validateStoryFormat(selectedFile.content)
+      setValidationResult(result)
+      setShowValidationPanel(true)
     }
   }
 
-  const toggleMinimap = () => {
-    setIsMinimapVisible(!isMinimapVisible)
+  const handleCreateProject = async (name, template) => {
+    const newProject = await createProject(name, template)
+    if (newProject) {
+      await loadProject(newProject.id)
+    }
+  }
+
+  const handleSelectProject = async (projectId) => {
+    if (projectId) {
+      // Clear current state when switching projects
+      setSelectedFile(null)
+      setActiveFileKey(null)
+      setOpenFiles([])
+      setValidationResult(null)
+      setShowValidationPanel(false)
+      
+      // Load the new project
+      await loadProject(projectId)
+    }
+  }
+
+  const handleToggleCommandPanel = () => {
+    setShowCommandPanel(!showCommandPanel)
+  }
+
+  const handleFileMove = async (sourceRelativePath, targetRelativePath, isFolder) => {
+    await moveFile(sourceRelativePath, targetRelativePath, isFolder)
+  }
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-vscode-bg">
+        <div className="text-vscode-text">Loading...</div>
+      </div>
+    )
   }
 
   return (
-    <div className="h-screen bg-vscode-bg text-vscode-text overflow-hidden">
+    <div className="h-screen bg-vscode-bg text-vscode-text flex flex-col">
       <Header 
-        status={status}
-        wordCount={wordCount}
+        currentProject={currentProject}
+        projects={projects}
+        selectedFile={selectedFile}
         validationResult={validationResult}
-        onFormat={handleFormat}
+        showMinimap={showMinimap}
         onValidate={handleValidate}
-        onSave={handleSave}
-        onLoadFile={handleLoadFile}
-        onToggleMinimap={toggleMinimap}
-        onToggleValidationDetails={() => setShowValidationDetails(!showValidationDetails)}
-        isMinimapVisible={isMinimapVisible}
-        showValidationDetails={showValidationDetails}
+        onToggleMinimap={() => setShowMinimap(!showMinimap)}
+        onToggleValidation={() => setShowValidationPanel(!showValidationPanel)}
+        onCreateProject={handleCreateProject}
+        onSelectProject={handleSelectProject}
+        showCommandPanel={showCommandPanel}
+        onToggleCommandPanel={handleToggleCommandPanel}
+        onStartTour={startTour}
       />
       
-      <div className="h-[calc(100vh-48px)] flex">
-        <div className="flex-1">
-          <MonacoEditor 
-            ref={editorRef}
-            value={editorContent}
-            onChange={handleEditorChange}
-            showMinimap={isMinimapVisible}
-            validationResult={validationResult}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="w-64 flex-shrink-0">
+          <FileTree 
+            files={files}
+            onFileSelect={handleFileSelect}
+            onFileCreate={handleFileCreate}
+            onFolderCreate={handleFolderCreate}
+            onFileDelete={handleFileDelete}
+            onFileRename={handleFileRename}
+            onFileMove={handleFileMove} 
+            selectedFile={selectedFile}
           />
         </div>
         
-        {showValidationDetails && validationResult && (
-          <ValidationPanel 
+        <div className="flex-1 flex">
+          <EditorFactory 
+            file={selectedFile}
+            onChange={handleFileChange}
+            showMinimap={showMinimap}
             validationResult={validationResult}
-            onClose={() => setShowValidationDetails(false)}
           />
-        )}
+          
+          {showValidationPanel && validationResult && (
+            <ValidationPanel 
+              validationResult={validationResult}
+              onClose={() => setShowValidationPanel(false)}
+            />
+          )}
+
+          {showCommandPanel && (
+            <CommandPanel 
+              currentProject={currentProject}
+              files={files}
+              selectedFile={selectedFile}
+              onClose={() => setShowCommandPanel(false)}
+            />
+          )}
+        </div>
       </div>
-      
-      <input
-        type="file"
-        id="fileInput"
-        className="hidden"
-        accept=".txt,.yaml,.yml"
-        onChange={handleLoadFile}
-      />
+      <Tour isActive={showTour} onClose={closeTour} />
     </div>
   )
 }

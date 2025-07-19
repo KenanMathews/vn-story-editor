@@ -1,8 +1,8 @@
 import { forwardRef, useEffect, useRef } from 'react'
 import Editor from '@monaco-editor/react'
-import { setupStoryLanguage } from '../utils/storyLanguage'
+import { setupStoryLanguage } from '../../utils/storyLanguage'
 
-const MonacoEditor = forwardRef(({ value, onChange, showMinimap, validationResult }, ref) => {
+const YAMLEditor = forwardRef(({ file, onChange, showMinimap, validationResult }, ref) => {
   const editorRef = useRef(null)
 
   const handleEditorDidMount = (editor, monaco) => {
@@ -160,7 +160,7 @@ const MonacoEditor = forwardRef(({ value, onChange, showMinimap, validationResul
       <Editor
         height="100%"
         defaultLanguage="story-format"
-        value={value}
+        value={file?.content || ''}
         onChange={onChange}
         onMount={handleEditorDidMount}
         theme="vs-dark"
@@ -189,6 +189,6 @@ const MonacoEditor = forwardRef(({ value, onChange, showMinimap, validationResul
   )
 })
 
-MonacoEditor.displayName = 'MonacoEditor'
+YAMLEditor.displayName = 'YAMLEditor'
 
-export default MonacoEditor
+export default YAMLEditor

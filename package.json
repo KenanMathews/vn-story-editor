@@ -1,7 +1,7 @@
 {
   "name": "vn-story-editor",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,14 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.11",
+    "autoprefixer": "^10.4.21",
+    "idb": "^8.0.3",
+    "js-yaml": "^4.1.0",
     "lucide-react": "^0.525.0",
+    "monaco-editor": "^0.52.2",
+    "postcss": "^8.5.6",
     "react": "^19.1.0",
+    "react-arborist": "^3.4.3",
     "react-dom": "^19.1.0",
-    "monaco-editor": "^0.44.0",
-    "@monaco-editor/react": "^4.6.0",
-    "tailwindcss": "^4.1.11",
-    "js-yaml": "^4.1.0"
+    "tailwindcss": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
