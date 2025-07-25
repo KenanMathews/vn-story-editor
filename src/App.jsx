@@ -8,6 +8,7 @@ import CommandPanel from './components/panels/CommandPanel'
 import Header from './components/ui/Header'
 import { validateStoryFormat } from './utils/storyValidator'
 import Tour, { useTour } from './components/tour/Tour'
+import { useCLI } from './hooks/useCLI'
 import './index.css'
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
   const [showValidationPanel, setShowValidationPanel] = useState(false)
   const [showCommandPanel, setShowCommandPanel] = useState(false)
   const { showTour, startTour, closeTour } = useTour() 
+  const { healthStatus } = useCLI()
 
   // Load first project by default
   useEffect(() => {
@@ -192,6 +194,7 @@ function App() {
         showCommandPanel={showCommandPanel}
         onToggleCommandPanel={handleToggleCommandPanel}
         onStartTour={startTour}
+        healthStatus={healthStatus}
       />
       
       <div className="flex-1 flex overflow-hidden">

@@ -1,5 +1,5 @@
 // hooks/useCLI.js - Updated with VN Compiler API integration
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 
 // VN Compiler API Client
 class VNCompilerClient {
@@ -112,6 +112,33 @@ export const useCLI = () => {
   const [output, setOutput] = useState('')
   const [error, setError] = useState(null)
   const [vnCompilerClient] = useState(() => new VNCompilerClient())
+  const [healthStatus, setHealthStatus] = useState({ status: 'unknown', message: null })
+  const [lastHealthCheck, setLastHealthCheck] = useState(null)
+
+  useEffect(() => {
+    checkHealth()
+    const interval = setInterval(checkHealth, 180000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const checkHealth = useCallback(async () => {
+    setHealthStatus({ status: 'checking', message: null })
+    try {
+      const health = await vnCompilerClient.health()
+      setHealthStatus({ 
+        status: 'healthy', 
+        message: health.status,
+        timestamp: health.timestamp 
+      })
+      setLastHealthCheck(new Date())
+    } catch (err) {
+      setHealthStatus({ 
+        status: 'error', 
+        message: err.message || 'Connection failed' 
+      })
+      setLastHealthCheck(new Date())
+    }
+  }, [vnCompilerClient])
 
   const logOutput = useCallback((message) => {
     setOutput(prev => prev + message + '\n')
@@ -154,13 +181,15 @@ export const useCLI = () => {
   }, [logOutput, logError, vnCompilerClient.baseURL])
 
   const handleHealthCheck = async () => {
+    logOutput('🔍 Checking VN Compiler server status...')
     try {
-      logOutput('🔍 Checking VN Compiler server status...')
+      await checkHealth()
       const health = await vnCompilerClient.health()
       logOutput(`✅ Server is healthy: ${health.status}`)
       logOutput(`📅 Timestamp: ${health.timestamp}`)
     } catch (err) {
-      throw new Error('VN Compiler server is not running. Please start it with: vn-compiler server')
+      logError('VN Compiler server is not running. Please start it with: vn-compiler server')
+      throw err
     }
   }
 
@@ -337,6 +366,9 @@ export const useCLI = () => {
     output,
     error,
     clearOutput,
-    vnCompilerClient
+    vnCompilerClient,
+    healthStatus,
+    lastHealthCheck,
+    checkHealth,
   }
 }

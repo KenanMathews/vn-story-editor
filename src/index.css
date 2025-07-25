@@ -617,3 +617,27 @@ main, .main-content {
     color: black !important;
   }
 }
+
+.health-status {
+  transition: all 0.3s ease;
+}
+
+.health-status.healthy {
+  border-color: var(--vscode-green);
+  background: rgba(137, 209, 133, 0.1);
+}
+
+.health-status.error {
+  border-color: var(--vscode-red);
+  background: rgba(244, 71, 71, 0.1);
+}
+
+.health-status.checking {
+  border-color: var(--vscode-yellow);
+  background: rgba(255, 204, 2, 0.1);
+}
+
+.health-status.unknown {
+  border-color: var(--vscode-border);
+  background: var(--vscode-bg);
+}

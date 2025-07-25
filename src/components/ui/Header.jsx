@@ -15,7 +15,10 @@ import {
   EyeOff,
   Plus,
   Terminal,
-  ChevronDown
+  ChevronDown,
+  Wifi,
+  WifiOff,
+  Loader
 } from 'lucide-react'
 
 const Header = ({ 
@@ -31,7 +34,8 @@ const Header = ({
   onSelectProject,
   onToggleCommandPanel,
   showCommandPanel,
-  onStartTour
+  onStartTour,
+  healthStatus
 }) => {
   const getFileTypeIcon = (fileType) => {
     switch (fileType) {
@@ -43,6 +47,32 @@ const Header = ({
         return <Code className="w-4 h-4 text-purple-400" />
       default:
         return <FileText className="w-4 h-4 text-gray-400" />
+    }
+  }
+
+  const getHealthIcon = () => {
+    switch (healthStatus?.status) {
+      case 'healthy':
+        return <Wifi className="w-4 h-4 text-green-400" />
+      case 'error':
+        return <WifiOff className="w-4 h-4 text-red-400" />
+      case 'checking':
+        return <Loader className="w-4 h-4 text-yellow-400 animate-spin" />
+      default:
+        return <WifiOff className="w-4 h-4 text-gray-400" />
+    }
+  }
+
+  const getHealthTooltip = () => {
+    switch (healthStatus?.status) {
+      case 'healthy':
+        return 'VN Compiler is running'
+      case 'error':
+        return `VN Compiler error: ${healthStatus?.message || 'Not responding'}`
+      case 'checking':
+        return 'Checking VN Compiler status...'
+      default:
+        return 'VN Compiler status unknown'
     }
   }
 
@@ -215,7 +245,18 @@ const Header = ({
           <BookOpen className="w-4 h-4" />
           <span>Tour</span>
         </button>
-        
+        <div 
+          className={`health-status flex items-center space-x-1 px-2 py-1 rounded text-xs border ${
+            healthStatus?.status || 'unknown'
+          }`}
+          title={getHealthTooltip()}
+        >
+          {getHealthIcon()}
+          <span className="text-xs text-vscode-text">
+            {healthStatus?.status === 'healthy' ? 'Online' : 
+             healthStatus?.status === 'checking' ? 'Checking' : 'Offline'}
+          </span>
+        </div>
         <button
           onClick={onToggleMinimap}
           className={`flex items-center space-x-1 px-3 py-1 rounded text-xs transition-colors ${

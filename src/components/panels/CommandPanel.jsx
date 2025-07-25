@@ -236,8 +236,13 @@ const CommandPanel = ({ currentProject, files, selectedFile, onClose }) => {
     }
   }
 
+  const canRunCommand = (cmd) => {
+    if (!cmd.requiresProject) return true
+    return currentProject && files && Object.keys(files).length > 0
+  }
+
   const getButtonStyle = (variant, disabled) => {
-    const baseStyle = "w-full p-3 text-left rounded border transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+    const baseStyle = "w-full p-2 text-left rounded border transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
     
     if (disabled) {
       return `${baseStyle} bg-vscode-bg border-vscode-border text-vscode-text-muted`
@@ -245,56 +250,52 @@ const CommandPanel = ({ currentProject, files, selectedFile, onClose }) => {
 
     switch (variant) {
       case 'primary':
-        return `${baseStyle} bg-blue-600 hover:bg-blue-700 border-blue-500 text-white shadow-md hover:shadow-lg`
+        return `${baseStyle} bg-blue-600 hover:bg-blue-700 border-blue-500 text-white shadow-sm hover:shadow-md`
       case 'success':
-        return `${baseStyle} bg-green-600 hover:bg-green-700 border-green-500 text-white shadow-md hover:shadow-lg`
+        return `${baseStyle} bg-green-600 hover:bg-green-700 border-green-500 text-white shadow-sm hover:shadow-md`
       case 'warning':
-        return `${baseStyle} bg-orange-600 hover:bg-orange-700 border-orange-500 text-white shadow-md hover:shadow-lg`
+        return `${baseStyle} bg-orange-600 hover:bg-orange-700 border-orange-500 text-white shadow-sm hover:shadow-md`
       case 'info':
-        return `${baseStyle} bg-vscode-blue hover:bg-vscode-blue-hover border-vscode-blue text-white shadow-md hover:shadow-lg`
+        return `${baseStyle} bg-vscode-blue hover:bg-vscode-blue-hover border-vscode-blue text-white shadow-sm hover:shadow-md`
       default:
         return `${baseStyle} bg-vscode-bg hover:bg-gray-600 border-vscode-border text-vscode-text`
     }
   }
 
-  const canRunCommand = (cmd) => {
-    if (!cmd.requiresProject) return true
-    return currentProject && files && Object.keys(files).length > 0
-  }
-
   return (
     <div className="fixed right-0 top-12 bottom-0 w-80 bg-vscode-panel border-l border-vscode-border flex flex-col shadow-lg z-40">
-      <div className="p-3 border-b border-vscode-border flex items-center justify-between">
+      {/* Header - Fixed */}
+      <div className="p-2 border-b border-vscode-border flex items-center justify-between flex-shrink-0">
         <div className="flex items-center space-x-2">
-          <Terminal className="w-4 h-4" />
-          <span className="text-sm font-medium">VN Compiler</span>
+          <Terminal className="w-3 h-3" />
+          <span className="text-xs font-medium">VN Compiler</span>
         </div>
         <button 
           onClick={onClose}
           className="p-1 hover:bg-vscode-bg rounded"
           title="Close command panel"
         >
-          <X className="w-4 h-4" />
+          <X className="w-3 h-3" />
         </button>
       </div>
       
-      <div className="flex-1 flex flex-col">
-        {/* Project Info */}
-        <div className="p-3 border-b border-vscode-border bg-vscode-bg">
-          <div className="text-xs text-vscode-text-muted mb-1">Current Project:</div>
-          <div className="text-sm text-vscode-text font-medium">
-            {currentProject ? currentProject.name : 'No project selected'}
-          </div>
-          {currentProject && (
-            <div className="text-xs text-vscode-text-muted mt-1">
-              {Object.keys(files).length} files
-            </div>
-          )}
+      {/* Project Info - Fixed */}
+      <div className="px-2 py-1 border-b border-vscode-border bg-vscode-bg flex-shrink-0">
+        <div className="text-xs text-vscode-text-muted">Project:</div>
+        <div className="text-xs text-vscode-text font-medium truncate">
+          {currentProject ? currentProject.name : 'No project'}
         </div>
+        {currentProject && (
+          <div className="text-xs text-vscode-text-muted">
+            {Object.keys(files).length} files
+          </div>
+        )}
+      </div>
 
-        {/* Commands */}
-        <div className="p-3 space-y-3">
-          <div className="text-xs text-vscode-text-muted mb-2">Available Commands:</div>
+      {/* Commands Section - Scrollable */}
+      <div className="flex-1 flex flex-col min-h-0">
+        <div className="flex-1 overflow-y-auto p-2 space-y-2">
+          <div className="text-xs text-vscode-text-muted mb-1">Commands:</div>
           {commands.map((cmd) => {
             const Icon = cmd.icon
             const canRun = canRunCommand(cmd)
@@ -307,17 +308,17 @@ const CommandPanel = ({ currentProject, files, selectedFile, onClose }) => {
                 className={getButtonStyle(cmd.variant, isRunning || !canRun)}
                 title={!canRun ? 'Requires a project with YAML files' : cmd.description}
               >
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
                   <div className="flex-shrink-0">
                     {isRunning ? (
-                      <Loader className="w-4 h-4 animate-spin" />
+                      <Loader className="w-3 h-3 animate-spin" />
                     ) : (
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3 h-3" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{cmd.name}</div>
-                    <div className="text-xs opacity-80 mt-1">{cmd.description}</div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <div className="text-xs font-medium leading-tight">{cmd.name}</div>
+                    <div className="text-xs opacity-75 leading-tight">{cmd.description}</div>
                   </div>
                 </div>
               </button>
@@ -325,51 +326,39 @@ const CommandPanel = ({ currentProject, files, selectedFile, onClose }) => {
           })}
         </div>
         
-        {/* Server Instructions */}
-        <div className="p-3 border-t border-vscode-border bg-vscode-bg">
-          <div className="text-xs text-vscode-text-muted">
-            <div className="mb-2 font-medium">📚 Setup Instructions:</div>
-            <div className="space-y-1">
-              <div>1. Start VN Compiler server:</div>
-              <div className="font-mono text-vscode-blue ml-2">vn-compiler server</div>
-              <div className="mt-2">2. Click "Health Check" to verify</div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Output Terminal */}
-        <div className="border-t border-vscode-border flex-1 flex flex-col min-h-0">
-          <div className="p-2 border-b border-vscode-border flex items-center justify-between bg-vscode-bg">
+        {/* Output Terminal - Fixed height, scrollable */}
+        <div className="border-t border-vscode-border flex flex-col bg-black" style={{ height: '400px' }}>
+          <div className="p-1 border-b border-vscode-border flex items-center justify-between bg-vscode-bg flex-shrink-0">
             <span className="text-xs text-vscode-text-muted flex items-center">
               <Terminal className="w-3 h-3 mr-1" />
               Output
             </span>
             <button 
               onClick={clearOutput}
-              className="text-xs text-vscode-text-muted hover:text-vscode-text transition-colors"
+              className="text-xs text-vscode-text-muted hover:text-vscode-text transition-colors px-1"
               disabled={isRunning}
             >
               Clear
             </button>
           </div>
-          <div className="flex-1 p-3 font-mono text-xs text-green-400 bg-black overflow-y-auto min-h-0">
+          <div className="flex-1 p-2 font-mono text-xs text-green-400 overflow-y-auto overflow-x-hidden">
             {output ? (
-              <pre className="whitespace-pre-wrap">{output}</pre>
+              <pre className="whitespace-pre-wrap break-words leading-tight">{output}</pre>
             ) : (
-              <div className="text-gray-500 italic">
+              <div className="text-gray-500 italic text-xs">
                 Command output will appear here...
               </div>
             )}
             {isRunning && (
-              <div className="flex items-center space-x-2 text-yellow-400 mt-2">
+              <div className="flex items-center space-x-2 text-yellow-400 mt-1">
                 <Loader className="w-3 h-3 animate-spin" />
-                <span>Processing...</span>
+                <span className="text-xs">Processing...</span>
               </div>
             )}
             {error && (
-              <div className="flex items-center space-x-2 text-red-400 mt-2">
+              <div className="flex items-center space-x-2 text-red-400 mt-1">
                 <AlertCircle className="w-3 h-3" />
-                <span>Error occurred. Check output above.</span>
+                <span className="text-xs">Error occurred. Check output above.</span>
               </div>
             )}
           </div>
