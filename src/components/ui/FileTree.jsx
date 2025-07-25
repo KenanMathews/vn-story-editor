@@ -561,13 +561,6 @@ const FileTree = ({
               >
                 Create your first file
               </button>
-              <button
-                className="w-full text-left px-3 py-1 hover:bg-vscode-bg text-sm text-vscode-text"
-                onClick={() => handleContextMenuAction('upload')}
-              >
-                <Upload className="w-4 h-4 inline mr-2" />
-                Upload Files {contextMenu.node.isFolder ? 'to folder' : 'here'}
-              </button>
             </div>
           </div>
         )}
