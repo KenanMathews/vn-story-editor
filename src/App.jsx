@@ -100,6 +100,10 @@ function App() {
     }
   }
 
+  const handleFileUpload = async (path, name, type, content) => {
+    await createFile(path, name, type, content)
+  }
+
   const handleFileCreate = async (path, name, type, content) => {
     await createFile(path, name, type, content)
   }
@@ -197,6 +201,7 @@ function App() {
             onFileSelect={handleFileSelect}
             onFileCreate={handleFileCreate}
             onFolderCreate={handleFolderCreate}
+            onFileUpload={handleFileUpload}
             onFileDelete={handleFileDelete}
             onFileRename={handleFileRename}
             onFileMove={handleFileMove} 

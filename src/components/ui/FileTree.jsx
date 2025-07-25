@@ -11,7 +11,8 @@ import {
   ChevronRight,
   ChevronDown,
   Move,
-  AlertCircle
+  AlertCircle,
+  Upload
 } from 'lucide-react'
 
 const FileTree = ({ 
@@ -21,11 +22,14 @@ const FileTree = ({
   onFileDelete, 
   onFileRename,
   onFolderCreate,
-  onFileMove, // NEW: Handle file/folder moving
+  onFileMove,
+  onFileUpload,
   selectedFile 
 }) => {
   const [contextMenu, setContextMenu] = useState(null)
   const [dragPreview, setDragPreview] = useState(null)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef(null)
   const [treeHeight, setTreeHeight] = useState(400)
   const [activeNode, setActiveNode] = useState(null)
   const containerRef = useRef(null)
@@ -45,6 +49,67 @@ const FileTree = ({
     return () => window.removeEventListener('resize', updateHeight)
   }, [])
 
+  const handleFileUpload = () => {
+      fileInputRef.current?.click()
+    }
+  const handleFileInputChange = async (event) => {
+    const files = Array.from(event.target.files || [])
+    if (files.length === 0) return
+
+    setUploading(true)
+    
+    try {
+      const basePath = getBasePath(activeNode)
+      
+      for (const file of files) {
+        const content = await readFileContent(file)
+        const fileType = getFileTypeFromName(file.name)
+        
+        // Use the onFileUpload prop (similar to onFileCreate)
+        await onFileUpload(basePath, file.name, fileType, content)
+      }
+      
+      console.log(`Successfully uploaded ${files.length} file(s)`)
+    } catch (error) {
+      console.error('File upload error:', error)
+      alert(`Failed to upload files: ${error.message}`)
+    } finally {
+      setUploading(false)
+      event.target.value = ''
+    }
+  }
+
+  const readFileContent = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      
+      reader.onload = (e) => {
+        resolve(e.target.result)
+      }
+      
+      reader.onerror = () => {
+        reject(new Error(`Failed to read file: ${file.name}`))
+      }
+
+      if (isTextFile(file.name)) {
+        reader.readAsText(file)
+      } else {
+        reader.readAsDataURL(file)
+      }
+    })
+  }
+
+  const isTextFile = (filename) => {
+  const textExtensions = [
+    'txt', 'md', 'yaml', 'yml', 'json', 'js', 'jsx', 'ts', 'tsx',
+    'css', 'scss', 'sass', 'html', 'htm', 'xml', 'csv', 'ini',
+    'conf', 'log', 'py', 'java', 'c', 'cpp', 'h', 'cs', 'php',
+    'rb', 'go', 'rs', 'sh', 'bat', 'ps1', 'sql'
+  ]
+  
+  const extension = filename.split('.').pop()?.toLowerCase()
+  return textExtensions.includes(extension || '')
+}
   const treeData = useMemo(() => {
     if (!files || typeof files !== 'object') {
       return []
@@ -246,6 +311,10 @@ const FileTree = ({
           setDragPreview(null)
         }
         break
+      case 'upload':
+        setActiveNode(clickedNode)
+        handleFileUpload()
+        break
     }
     setContextMenu(null)
   }
@@ -432,8 +501,24 @@ const FileTree = ({
             >
               <Folder className="w-4 h-4 text-vscode-text-muted" />
             </button>
+            <button 
+              onClick={handleFileUpload}
+              disabled={uploading}
+              className="p-1 hover:bg-vscode-bg rounded disabled:opacity-50"
+              title={uploading ? "Uploading..." : "Upload Files"}
+            >
+              <Upload className={`w-4 h-4 text-vscode-text-muted ${uploading ? 'animate-pulse' : ''}`} />
+            </button>
           </div>
         </div>
+         <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          onChange={handleFileInputChange}
+          style={{ display: 'none' }}
+          accept=".txt,.md,.yaml,.yml,.json,.js,.jsx,.ts,.tsx,.css,.scss,.sass,.html,.htm,.xml,.csv,.ini,.conf,.log,.py,.java,.c,.cpp,.h,.cs,.php,.rb,.go,.rs,.sh,.bat,.ps1,.sql,image/*,audio/*,video/*"
+        />
       </div>
       
       {/* Tree Container */}
@@ -476,6 +561,13 @@ const FileTree = ({
               >
                 Create your first file
               </button>
+              <button
+                className="w-full text-left px-3 py-1 hover:bg-vscode-bg text-sm text-vscode-text"
+                onClick={() => handleContextMenuAction('upload')}
+              >
+                <Upload className="w-4 h-4 inline mr-2" />
+                Upload Files {contextMenu.node.isFolder ? 'to folder' : 'here'}
+              </button>
             </div>
           </div>
         )}
@@ -513,6 +605,13 @@ const FileTree = ({
             >
               <Folder className="w-4 h-4 inline mr-2" />
               New Folder {contextMenu.node.isFolder ? 'in folder' : 'here'}
+            </button>
+            <button
+              className="w-full text-left px-3 py-1 hover:bg-vscode-bg text-sm text-vscode-text"
+              onClick={() => handleContextMenuAction('upload')}
+            >
+              <Upload className="w-4 h-4 inline mr-2" />
+              Upload Files {contextMenu.node.isFolder ? 'to folder' : 'here'}
             </button>
             
             <hr className="border-vscode-border my-1" />
