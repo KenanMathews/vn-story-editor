@@ -27,7 +27,7 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Create nginx config optimized for React SPA
 RUN echo 'server { \
-    listen 80; \
+    listen 3000; \
     server_name localhost; \
     root /usr/share/nginx/html; \
     index index.html; \
@@ -52,12 +52,12 @@ RUN echo 'server { \
 # Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf.dpkg-dist 2>/dev/null || true
 
-# Expose port 80
+# Expose port 3000 (matching Traefik config)
 EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost/ || exit 1
+    CMD curl -f http://localhost:3000/ || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]
