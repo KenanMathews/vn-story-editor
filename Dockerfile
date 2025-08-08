@@ -1,5 +1,5 @@
 # Multi-stage build for Vite React app
-FROM node:18-alpine as builder
+FROM node:20-alpine as builder
 
 # Set working directory
 WORKDIR /app
