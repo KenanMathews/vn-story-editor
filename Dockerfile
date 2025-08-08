@@ -1,4 +1,4 @@
-# Multi-stage build
+# Multi-stage build for Vite React app
 FROM node:18-alpine as builder
 
 # Set working directory
@@ -7,31 +7,52 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies - FIXED: Use npm install instead of npm ci
-RUN npm install --omit=dev
+# Install dependencies
+RUN npm install
 
 # Copy source code
 COPY . .
 
-# Build the application (if you have a build step)
-RUN npm run build 2>/dev/null || echo "No build script found, skipping..."
+# Build the Vite application
+RUN npm run build
 
-# Production stage
+# Production stage with nginx
 FROM nginx:alpine
 
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy built application from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html/ 2>/dev/null || \
-     COPY --from=builder /app/build /usr/share/nginx/html/ 2>/dev/null || \
-     COPY --from=builder /app/public /usr/share/nginx/html/ 2>/dev/null || \
-     COPY --from=builder /app /usr/share/nginx/html/
+# Copy built files from dist folder (Vite default output)
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom nginx config if it exists
-COPY nginx.conf /etc/nginx/conf.d/default.conf 2>/dev/null || echo "No custom nginx config found"
+# Create nginx config optimized for React SPA
+RUN echo 'server { \
+    listen 80; \
+    server_name localhost; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    \
+    # Handle React Router (SPA) \
+    location / { \
+        try_files $uri $uri/ /index.html; \
+    } \
+    \
+    # Cache static assets \
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ { \
+        expires 1y; \
+        add_header Cache-Control "public, immutable"; \
+    } \
+    \
+    # Security headers \
+    add_header X-Frame-Options "SAMEORIGIN" always; \
+    add_header X-Content-Type-Options "nosniff" always; \
+    add_header Referrer-Policy "no-referrer-when-downgrade" always; \
+}' > /etc/nginx/conf.d/default.conf
 
-# Expose port
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf.dpkg-dist 2>/dev/null || true
+
+# Expose port 80
 EXPOSE 80
 
 # Health check
