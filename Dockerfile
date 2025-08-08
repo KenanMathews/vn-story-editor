@@ -53,7 +53,7 @@ RUN echo 'server { \
 RUN rm /etc/nginx/conf.d/default.conf.dpkg-dist 2>/dev/null || true
 
 # Expose port 80
-EXPOSE 80
+EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
