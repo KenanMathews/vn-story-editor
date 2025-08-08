@@ -138,12 +138,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Docker
-Dockerfile
-.dockerignore
-nginx.conf
-.env.production
-
 # Deployment
 *.deploy.log
 docker-compose.override.yml
